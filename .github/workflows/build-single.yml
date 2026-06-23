@@ -199,11 +199,15 @@ jobs:
           set -euo pipefail
           DEST="$RUNNER_TEMP/artifacts-${{ inputs.name }}-${{ matrix.platform }}"
           mkdir -p "$DEST"
-          case "${{ matrix.platform }}" in
-            macos)   find / -name "*.dmg" 2>/dev/null | grep "release/bundle/dmg" | xargs -I {} cp {} "$DEST/" ;;
-            windows) find / -name "*.msi" 2>/dev/null | grep "release/bundle/msi" | xargs -I {} cp {} "$DEST/" ;;
-            linux)   find / -name "*.deb" 2>/dev/null | grep "release/bundle/deb" | xargs -I {} cp {} "$DEST/" ;;
-          esac
+          # Pake CLI installs to node global; bundle is at the same path on all OSes
+          BUNDLE_SRC="/opt/hostedtoolcache/node/22.22.3/x64/lib/node_modules/pake-cli/src-tauri/target/release/bundle/${{ matrix.pake_targets }}"
+          echo "Copying from $BUNDLE_SRC to $DEST"
+          if [ -d "$BUNDLE_SRC" ]; then
+            cp -v "$BUNDLE_SRC"/* "$DEST/" || true
+          else
+            echo "::warning::Bundle directory not found at $BUNDLE_SRC"
+            ls -la "$(dirname "$BUNDLE_SRC")" || true
+          fi
           ls -la "$DEST/"
           echo "dest=$DEST" >> "$GITHUB_OUTPUT"
 
