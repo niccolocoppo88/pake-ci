@@ -1,0 +1,72 @@
+[
+  {
+    "name": "excalidraw",
+    "title": "Excalidraw",
+    "url": "https://excalidraw.com",
+    "width": 1200,
+    "height": 800,
+    "incognito": false
+  },
+  {
+    "name": "chatgpt",
+    "title": "ChatGPT",
+    "url": "https://chatgpt.com",
+    "width": 1100,
+    "height": 750,
+    "incognito": false,
+    "safe_domain": "openai.com,chatgpt.com,oaistatic.com,oaiusercontent.com,intercom.io,intercomcdn.com,intercomassets.com"
+  },
+  {
+    "name": "gemini",
+    "title": "Gemini",
+    "url": "https://gemini.google.com",
+    "width": 1100,
+    "height": 750,
+    "safe_domain": "google.com,accounts.google.com,gstatic.com,googleapis.com,googlevideo.com"
+  },
+  {
+    "name": "grok",
+    "title": "Grok",
+    "url": "https://grok.com",
+    "width": 1100,
+    "height": 750,
+    "safe_domain": "x.com,twitter.com,twimg.com"
+  },
+  {
+    "name": "deepseek",
+    "title": "DeepSeek",
+    "url": "https://chat.deepseek.com",
+    "width": 1100,
+    "height": 750
+  },
+  {
+    "name": "youtube",
+    "title": "YouTube",
+    "url": "https://www.youtube.com",
+    "width": 1280,
+    "height": 800,
+    "safe_domain": "google.com,accounts.google.com,gstatic.com,googleapis.com,googlevideo.com,ytimg.com,youtube-nocookie.com"
+  },
+  {
+    "name": "youtube-music",
+    "title": "YouTube Music",
+    "url": "https://music.youtube.com",
+    "width": 1280,
+    "height": 800,
+    "safe_domain": "google.com,accounts.google.com,gstatic.com,googleapis.com,googlevideo.com,ytimg.com"
+  },
+  {
+    "name": "excalidraw-pro",
+    "title": "Excalidraw Pro",
+    "url": "https://excalidraw.com",
+    "width": 1400,
+    "height": 900,
+    "incognito": false,
+    "hide_title_bar": true,
+    "dark_mode": true,
+    "always_on_top": true,
+    "enable_find": true,
+    "hide_on_close": true,
+    "activation_shortcut": "Cmd+Shift+E"
+  }
+]

@@ -1,0 +1,30 @@
+name: Lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: Validate apps.json + workflow files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install jq
+        run: sudo apt-get install -y jq
+      - name: Validate apps.json schema
+        run: |
+          jq -e 'type == "array"' apps.json > /dev/null
+          jq -e '[.[] | has("name") and has("title") and has("url")] | all' apps.json > /dev/null
+          jq -e '[.[] | .name | test("^[a-z0-9-]+$")] | all' apps.json > /dev/null
+          echo "apps.json OK: $(jq 'length' apps.json) apps"
+          jq -r '.[] | "  - \(.name): \(.url)"' apps.json
+      - name: Validate workflow YAML
+        run: |
+          python3 -c "import yaml; yaml.safe_load(open('.github/workflows/build-popular.yml')); yaml.safe_load(open('.github/workflows/build-single.yml')); print('YAML OK')"
+      - name: Validate action YAML
+        run: |
+          python3 -c "import yaml; yaml.safe_load(open('.github/actions/pake-setup/action.yml')); print('action.yml OK')"

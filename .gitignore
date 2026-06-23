@@ -1,0 +1,29 @@
+# Build artifacts
+target/
+dist/
+**/target/
+**/release/
+**/bundle/
+
+# Node
+node_modules/
+.npm/
+
+# macOS
+.DS_Store
+*.dmg
+*.app
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Temp
+/tmp/
+.cache/

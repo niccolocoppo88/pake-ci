@@ -1,0 +1,74 @@
+name: Build All Popular Pake Apps
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps.json'
+      - '.github/workflows/build-popular.yml'
+      - '.github/workflows/build-single.yml'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Optional release tag (e.g. v2026.06.24). Empty = no release."
+        required: false
+        default: ""
+      only:
+        description: "Build only this app name (from apps.json). Empty = all."
+        required: false
+        default: ""
+
+jobs:
+  parse-config:
+    name: Parse apps.json
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.parse.outputs.matrix }}
+      count: ${{ steps.parse.outputs.count }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: parse
+        shell: bash
+        run: |
+          if [ -n "${{ inputs.only }}" ]; then
+            MATRIX=$(jq -c --arg only "${{ inputs.only }}" '[.[] | select(.name == $only)]' apps.json)
+          else
+            MATRIX=$(jq -c '.' apps.json)
+          fi
+          COUNT=$(echo "$MATRIX" | jq 'length')
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+          echo "Building $COUNT apps: $(echo "$MATRIX" | jq -c '[.[].name]')"
+
+  build:
+    name: "${{ inputs.title }} (${{ matrix.os }})"
+    needs: parse-config
+    if: needs.parse-config.outputs.count > 0
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+        config: ${{ fromJSON(needs.parse-config.outputs.matrix) }}
+    uses: ./.github/workflows/build-single.yml
+    with:
+      name: ${{ matrix.config.name }}
+      title: ${{ matrix.config.title }}
+      url: ${{ matrix.config.url }}
+      icon: ${{ matrix.config.icon || '' }}
+      width: ${{ matrix.config.width || 1200 }}
+      height: ${{ matrix.config.height || 780 }}
+      incognito: ${{ matrix.config.incognito || false }}
+      hide_title_bar: ${{ matrix.config.hide_title_bar || false }}
+      dark_mode: ${{ matrix.config.dark_mode || false }}
+      always_on_top: ${{ matrix.config.always_on_top || false }}
+      enable_find: ${{ matrix.config.enable_find || false }}
+      multi_instance: ${{ matrix.config.multi_instance || false }}
+      safe_domain: ${{ matrix.config.safe_domain || '' }}
+      upload_release: ${{ inputs.tag }}
+    secrets:
+      PAKE_NOTARIZE_APPLE_ID: ${{ secrets.PAKE_NOTARIZE_APPLE_ID }}
+      PAKE_NOTARIZE_TEAM_ID: ${{ secrets.PAKE_NOTARIZE_TEAM_ID }}
+      PAKE_NOTARIZE_PASSWORD: ${{ secrets.PAKE_NOTARIZE_PASSWORD }}
+      PAKE_API_KEY_BASE64: ${{ secrets.PAKE_API_KEY_BASE64 }}
+      PAKE_API_KEY_ID: ${{ secrets.PAKE_API_KEY_ID }}
+      PAKE_API_ISSUER_ID: ${{ secrets.PAKE_API_ISSUER_ID }}

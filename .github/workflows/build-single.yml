@@ -1,0 +1,221 @@
+name: Build Single Pake App
+
+on:
+  workflow_dispatch:
+    inputs:
+      name:
+        description: "App name (lowercase, no spaces)"
+        required: true
+        default: "myapp"
+      title:
+        description: "Display title"
+        required: true
+        default: "MyApp"
+      url:
+        description: "Target URL"
+        required: true
+        default: "https://example.com"
+      icon:
+        description: "Custom icon URL (optional)"
+        required: false
+      width:
+        description: "Window width"
+        required: false
+        default: "1200"
+      height:
+        description: "Window height"
+        required: false
+        default: "780"
+      incognito:
+        description: "Enable incognito mode"
+        type: boolean
+        required: false
+        default: false
+      hide_title_bar:
+        description: "Hide macOS title bar"
+        type: boolean
+        required: false
+        default: false
+      dark_mode:
+        description: "Force dark mode"
+        type: boolean
+        required: false
+        default: false
+      always_on_top:
+        description: "Always on top"
+        type: boolean
+        required: false
+        default: false
+      enable_find:
+        description: "Enable in-page find (Cmd+F)"
+        type: boolean
+        required: false
+        default: false
+      multi_instance:
+        description: "Allow multiple instances"
+        type: boolean
+        required: false
+        default: false
+      safe_domain:
+        description: "Comma-separated extra internal domains (SSO/OAuth)"
+        required: false
+      targets:
+        description: "Comma-separated targets (auto, macos, msi, nsis, deb, appimage). Default = all"
+        required: false
+        default: "auto"
+      upload_release:
+        description: "Attach artifacts to a GitHub Release with this tag (empty = no release)"
+        required: false
+        default: ""
+  workflow_call:
+    inputs:
+      name:
+        description: "App name"
+        type: string
+        required: true
+      title:
+        description: "Display title"
+        type: string
+        required: true
+      url:
+        description: "Target URL"
+        type: string
+        required: true
+      icon:
+        description: "Custom icon URL"
+        type: string
+        required: false
+      width:
+        type: number
+        required: false
+        default: 1200
+      height:
+        type: number
+        required: false
+        default: 780
+      incognito:
+        type: boolean
+        required: false
+        default: false
+      hide_title_bar:
+        type: boolean
+        required: false
+        default: false
+      dark_mode:
+        type: boolean
+        required: false
+        default: false
+      always_on_top:
+        type: boolean
+        required: false
+        default: false
+      enable_find:
+        type: boolean
+        required: false
+        default: false
+      multi_instance:
+        type: boolean
+        required: false
+        default: false
+      safe_domain:
+        type: string
+        required: false
+      targets:
+        type: string
+        required: false
+        default: "auto"
+      upload_release:
+        description: "Tag to attach release artifacts to (empty = no release)"
+        type: string
+        required: false
+        default: ""
+    secrets:
+      PAKE_NOTARIZE_APPLE_ID:
+        required: false
+      PAKE_NOTARIZE_TEAM_ID:
+        required: false
+      PAKE_NOTARIZE_PASSWORD:
+        required: false
+      PAKE_API_KEY_BASE64:
+        description: "Base64-encoded App Store Connect API key (.p8 contents). Optional, preferred over Apple ID password."
+        required: false
+      PAKE_API_KEY_ID:
+        description: "App Store Connect API Key ID"
+        required: false
+      PAKE_API_ISSUER_ID:
+        description: "App Store Connect Issuer ID"
+        required: false
+
+jobs:
+  build:
+    name: "${{ inputs.title }} (${{ matrix.os }})"
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            platform: macos
+            artifact_ext: dmg
+          - os: windows-latest
+            platform: windows
+            artifact_ext: msi
+          - os: ubuntu-latest
+            platform: linux
+            artifact_ext: deb
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Pake environment
+        uses: ./.github/actions/pake-setup
+
+      - name: Build Pake app
+        shell: bash
+        env:
+          PAKE_CREATE_APP: "1"
+        run: |
+          set -euo pipefail
+          ARGS=("${{ inputs.url }}" "--name" "${{ inputs.name }}")
+          [ -n "${{ inputs.icon }}" ] && ARGS+=("--icon" "${{ inputs.icon }}")
+          ARGS+=("--width" "${{ inputs.width }}" "--height" "${{ inputs.height }}")
+          [ "${{ inputs.incognito }}" = "true" ] && ARGS+=("--incognito")
+          [ "${{ inputs.hide_title_bar }}" = "true" ] && ARGS+=("--hide-title-bar")
+          [ "${{ inputs.dark_mode }}" = "true" ] && ARGS+=("--dark-mode")
+          [ "${{ inputs.always_on_top }}" = "true" ] && ARGS+=("--always-on-top")
+          [ "${{ inputs.enable_find }}" = "true" ] && ARGS+=("--enable-find")
+          [ "${{ inputs.multi_instance }}" = "true" ] && ARGS+=("--multi-instance")
+          [ -n "${{ inputs.safe_domain }}" ] && ARGS+=("--safe-domain" "${{ inputs.safe_domain }}")
+          ARGS+=("--targets" "${{ inputs.targets }}")
+          pake "${ARGS[@]}"
+
+      - name: Locate built artifacts
+        id: locate
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEST="$RUNNER_TEMP/artifacts-${{ inputs.name }}-${{ matrix.platform }}"
+          mkdir -p "$DEST"
+          case "${{ matrix.platform }}" in
+            macos)   find / -name "*.dmg" 2>/dev/null | grep "release/bundle/dmg" | xargs -I {} cp {} "$DEST/" ;;
+            windows) find / -name "*.msi" 2>/dev/null | grep "release/bundle/msi" | xargs -I {} cp {} "$DEST/" ;;
+            linux)   find / -name "*.deb" 2>/dev/null | grep "release/bundle/deb" | xargs -I {} cp {} "$DEST/" ;;
+          esac
+          ls -la "$DEST/"
+          echo "dest=$DEST" >> "$GITHUB_OUTPUT"
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.name }}-${{ matrix.os }}
+          path: ${{ steps.locate.outputs.dest }}/*
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Attach to GitHub Release
+        if: inputs.upload_release != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.upload_release }}
+          files: ${{ steps.locate.outputs.dest }}/*
+          fail_on_unmatched_files: false
