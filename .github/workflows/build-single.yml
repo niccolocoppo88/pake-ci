@@ -203,11 +203,13 @@ jobs:
           BUNDLE_SRC="/opt/hostedtoolcache/node/22.22.3/x64/lib/node_modules/pake-cli/src-tauri/target/release/bundle/${{ matrix.pake_targets }}"
           echo "Copying from $BUNDLE_SRC to $DEST"
           if [ -d "$BUNDLE_SRC" ]; then
-            cp -v "$BUNDLE_SRC"/* "$DEST/" || true
+            # Use find + cp to handle both files and directories
+            find "$BUNDLE_SRC" -mindepth 1 -maxdepth 1 -exec cp -rv {} "$DEST/" \;
           else
             echo "::warning::Bundle directory not found at $BUNDLE_SRC"
             ls -la "$(dirname "$BUNDLE_SRC")" || true
           fi
+          echo "=== Final DEST contents ==="
           ls -la "$DEST/"
           echo "dest=$DEST" >> "$GITHUB_OUTPUT"
 
