@@ -157,12 +157,15 @@ jobs:
           - os: macos-latest
             platform: macos
             artifact_ext: dmg
+            pake_targets: dmg
           - os: windows-latest
             platform: windows
             artifact_ext: msi
+            pake_targets: msi
           - os: ubuntu-latest
             platform: linux
             artifact_ext: deb
+            pake_targets: deb
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -186,7 +189,7 @@ jobs:
           [ "${{ inputs.enable_find }}" = "true" ] && ARGS+=("--enable-find")
           [ "${{ inputs.multi_instance }}" = "true" ] && ARGS+=("--multi-instance")
           [ -n "${{ inputs.safe_domain }}" ] && ARGS+=("--safe-domain" "${{ inputs.safe_domain }}")
-          ARGS+=("--targets" "${{ inputs.targets }}")
+          ARGS+=("--targets" "${{ matrix.pake_targets }}")
           pake "${ARGS[@]}"
 
       - name: Locate built artifacts
