@@ -67,6 +67,16 @@ on:
         description: "Attach artifacts to a GitHub Release with this tag (empty = no release)"
         required: false
         default: ""
+      platform:
+        description: "Target platform (auto = all three). Useful for fast single-OS tests."
+        type: choice
+        required: false
+        default: "auto"
+        options:
+          - auto
+          - macos
+          - windows
+          - linux
   workflow_call:
     inputs:
       name:
@@ -129,6 +139,11 @@ on:
         type: string
         required: false
         default: ""
+      platform:
+        description: "Target platform (auto = all three)"
+        type: string
+        required: false
+        default: "auto"
     secrets:
       PAKE_NOTARIZE_APPLE_ID:
         required: false
@@ -167,13 +182,22 @@ jobs:
             artifact_ext: deb
             pake_targets: deb
     steps:
+      - name: Skip if platform filter doesn't match
+        id: skip
+        if: ${{ inputs.platform != 'auto' && inputs.platform != matrix.platform }}
+        run: |
+          echo "::notice::Skipping ${{ matrix.platform }} (filter: ${{ inputs.platform }})"
+          echo "skip=true" >> "$GITHUB_OUTPUT"
       - name: Checkout repository
+        if: steps.skip.outputs.skip != 'true'
         uses: actions/checkout@v4
 
       - name: Setup Pake environment
+        if: steps.skip.outputs.skip != 'true'
         uses: ./.github/actions/pake-setup
 
       - name: Build Pake app
+        if: steps.skip.outputs.skip != 'true'
         shell: bash
         env:
           PAKE_CREATE_APP: "1"
@@ -193,6 +217,7 @@ jobs:
           pake "${ARGS[@]}"
 
       - name: Locate built artifacts
+        if: steps.skip.outputs.skip != 'true'
         id: locate
         shell: bash
         run: |
@@ -214,6 +239,7 @@ jobs:
           echo "dest=$DEST" >> "$GITHUB_OUTPUT"
 
       - name: Upload workflow artifacts
+        if: steps.skip.outputs.skip != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.name }}-${{ matrix.os }}
@@ -222,7 +248,7 @@ jobs:
           retention-days: 30
 
       - name: Attach to GitHub Release
-        if: inputs.upload_release != ''
+        if: steps.skip.outputs.skip != 'true' && inputs.upload_release != ''
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.upload_release }}
