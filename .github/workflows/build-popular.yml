@@ -47,7 +47,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
+        # matrix ONLY on apps (the callable has its own os matrix)
         config: ${{ fromJSON(needs.parse-config.outputs.matrix) }}
     uses: ./.github/workflows/build-single.yml
     with:
